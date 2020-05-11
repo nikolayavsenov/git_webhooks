@@ -1,0 +1,5 @@
+BACKEND_URL = None
+FRONTEND_URL = None
+SERVER_PORT = 8080
+GIT_KEY = None
+EVENT_TYPE = 'pull'
