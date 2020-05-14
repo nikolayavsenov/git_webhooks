@@ -1,0 +1,12 @@
+"""URLs"""
+BACKEND_URL = 'None1'
+FRONTEND_URL = 'None'
+
+"""Paths"""
+BACKEND_PATH = None
+FRONTEND_PATH = None
+
+SERVER_PORT = 8080
+GIT_KEY = None
+EVENT_TYPE = 'pull'
+
