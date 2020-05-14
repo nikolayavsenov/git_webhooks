@@ -6,19 +6,21 @@ from handl import *
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         return self.send_error(500, 'denied')
-        #block_on_fw(ip)
+        # TODO: log to file, block_on_fw(ip)
 
     def do_POST(self):
-        if Header.validate_headers(self.headers):
-            return print("Valid")
-        data_type = cgi.parse_header(self.headers['content-type'])
-        event_type = cgi.parse_header(self.headers['X-Github-Event'])
+        #data_type = cgi.parse_header(self.headers['content-type'])
+        # event_type = cgi.parse_header(self.headers['X-Github-Event'])
+        # print("Event:", event_type[0])
         raw_data = self.rfile.read(int(self.headers['content-length']))
-        data = json.loads(raw_data)
-        """Проверка заголовков"""
-        test = DataHandler(data)
-        test.write()
-        print("Event:", event_type[0])
+        headers = Header(self.headers, raw_data)
+        if headers.validate():
+            data = json.loads(raw_data)
+            task_giver = TaskGiver()
+            task_giver.start_event(data)
+        else:
+            self.send_error(400, 'invalid_headers')
+            # TODO: log to file, block on fw
 
 
 def start_server(port):
