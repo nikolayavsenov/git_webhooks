@@ -5,7 +5,7 @@ import os
 import signal
 import time
 import subprocess
-
+import shutil
 from settings import *
 
 
@@ -50,14 +50,14 @@ class NullHandler:
 
     @staticmethod
     def create_temp_folder(path):
-        temp_path = path + r'\temp'
+        temp_path = path + 'temp'
         os.mkdir(temp_path)
         os.chdir(str(temp_path))
         return temp_path
 
     @staticmethod
     def delete_temp_folder(path):
-        os.remove(path)
+        shutil.rmtree(path)
 
     @staticmethod
     def log(message):
@@ -75,14 +75,25 @@ class BackendUpdate(NullHandler):
         # TODO: backend update task
         if data['repository']['full_name'] == BACKEND_URL:
             path = super().create_temp_folder(BACKEND_PATH)
-            clone = subprocess.run(f'git clone {BACKEND_URL}')
-            if clone.returncode == 0:
-                super().log(f'Failed to clone from {BACKEND_URL}.')
+            os.chdir(BACKEND_PATH)
+            clone = subprocess.run(f'git clone {BACKEND_URL} temp', shell=True, timeout=120)
+            if clone.returncode != 0:
                 super().delete_temp_folder(path)
-            tests = subprocess.run('python -m venv && source venv/bin/activate &&  python manage.py test api.tests')
-            if tests != 0:
-                super().log(f'Tests for {BACKEND_URL} failed! \n {tests.stdout}')
+                return super().log(f'Failed to clone from {BACKEND_URL}.')
+            os.chdir(path)
+            venv_activate = subprocess.run(
+                'python3 -m venv venv && . venv/bin/activate && pip3 install -r req.txt',
+                shell=True)
+            if venv_activate.returncode != 0:
                 super().delete_temp_folder(path)
+                return super().log('Virtual env failure!')
+            tests = subprocess.run(
+                '. venv/bin/activate && python3 manage.py makemigrations '
+                '&& python3 manage.py migrate && python3 manage.py test api.tests',
+                shell=True)
+            if tests.returncode != 0:
+                super().delete_temp_folder(path)
+                return super().log(f'Tests for {BACKEND_URL} failed!')
             else:
                 print('Tests passed')
             print('Starting backend update!')
