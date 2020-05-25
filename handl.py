@@ -1,6 +1,11 @@
 import cgi
 import hashlib
 import hmac
+import os
+import signal
+import time
+import subprocess
+
 from settings import *
 
 
@@ -18,8 +23,7 @@ class Header:
         try:
             data_type = cgi.parse_header(self.header['content-type'])
             event_type = cgi.parse_header(self.header['X-Github-Event'])
-            print(event_type != EVENT_TYPE)
-            return data_type != 'application/json' and event_type != EVENT_TYPE
+            return data_type[0] == 'application/json' and event_type[0] == EVENT_TYPE
         except Exception:
             return False
 
@@ -44,12 +48,43 @@ class NullHandler:
         if self.__successfully is not None:
             self.__successfully.handle(data, event)
 
+    @staticmethod
+    def create_temp_folder(path):
+        temp_path = path + r'\temp'
+        os.mkdir(temp_path)
+        os.chdir(str(temp_path))
+        return temp_path
+
+    @staticmethod
+    def delete_temp_folder(path):
+        os.remove(path)
+
+    @staticmethod
+    def log(message):
+        log = Logger(message)
+        log.record_event()
+
+    @staticmethod
+    def launch_into_production():
+        pass
+
 
 class BackendUpdate(NullHandler):
     """Задача на обновление бэка"""
     def handle(self, data, event):
         # TODO: backend update task
         if data['repository']['full_name'] == BACKEND_URL:
+            path = super().create_temp_folder(BACKEND_PATH)
+            clone = subprocess.run(f'git clone {BACKEND_URL}')
+            if clone.returncode == 0:
+                super().log(f'Failed to clone from {BACKEND_URL}.')
+                super().delete_temp_folder(path)
+            tests = subprocess.run('python -m venv && source venv/bin/activate &&  python manage.py test api.tests')
+            if tests != 0:
+                super().log(f'Tests for {BACKEND_URL} failed! \n {tests.stdout}')
+                super().delete_temp_folder(path)
+            else:
+                print('Tests passed')
             print('Starting backend update!')
         else:
             super().task_assigner(data, event)
@@ -81,3 +116,17 @@ class TaskGiver:
     def handle_tasks(self, data):
         for event in self.events:
             self.handlers.handle(data, event)
+
+
+class Logger:
+    def __init__(self, message):
+        self.message = message
+        self.record = []
+
+    def record_event(self):
+        event_time = time.strftime("%d.%m.%Y %H:%M:%S")
+        self.record.append(f'[{event_time}] - request denied. Reason: {str(self.message)}')
+        print(self.record)
+
+
+

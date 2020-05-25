@@ -5,13 +5,12 @@ from handl import *
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        log = Logger(self.headers, self.client_address[0], 'GET request')
+        log.record_event()
         return self.send_error(500, 'denied')
         # TODO: log to file, block_on_fw(ip)
 
     def do_POST(self):
-        #data_type = cgi.parse_header(self.headers['content-type'])
-        # event_type = cgi.parse_header(self.headers['X-Github-Event'])
-        # print("Event:", event_type[0])
         raw_data = self.rfile.read(int(self.headers['content-length']))
         headers = Header(self.headers, raw_data)
         if headers.validate():
@@ -20,6 +19,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             task_giver.start_event(data)
         else:
             self.send_error(400, 'invalid_headers')
+            log = Logger(self.headers, self.client_address[0], 'Invalid headers')
+            log.record_event()
             # TODO: log to file, block on fw
 
 
