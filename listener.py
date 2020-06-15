@@ -5,10 +5,9 @@ from handl import *
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        log = Logger(self.headers, self.client_address[0], 'GET request')
+        log = Logger(f'GET request from {self.client_address[0]}')
         log.record_event()
         return self.send_error(500, 'denied')
-        # TODO: log to file, block_on_fw(ip)
 
     def do_POST(self):
         raw_data = self.rfile.read(int(self.headers['content-length']))
@@ -19,7 +18,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             task_giver.start_event(data)
         else:
             self.send_error(400, 'invalid_headers')
-            log = Logger(self.headers, self.client_address[0], 'Invalid headers')
+            log = Logger(f'Invalid headers from {self.client_address[0]}')
             log.record_event()
             # TODO: log to file, block on fw
 
@@ -30,4 +29,4 @@ def start_server(port):
 
 
 if __name__ == "__main__":
-    start_server(8080)
+    start_server(8081)

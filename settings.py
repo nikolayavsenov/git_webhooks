@@ -4,6 +4,7 @@ FRONTEND_URL = 'None'
 
 """Paths"""
 BACKEND_PATH = "/home/ubuntu/"
+BACKEND_FOLDER_NAME = 'app'
 FRONTEND_PATH = None
 
 SERVER_PORT = 8080

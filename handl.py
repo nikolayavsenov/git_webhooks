@@ -87,15 +87,21 @@ class BackendUpdate(NullHandler):
             if venv_activate.returncode != 0:
                 super().delete_temp_folder(path)
                 return super().log('Virtual env failure!')
+            print('start tests')
             tests = subprocess.run(
                 '. venv/bin/activate && python3 manage.py makemigrations '
                 '&& python3 manage.py migrate && python3 manage.py test api.tests',
                 shell=True)
-            if tests.returncode != 0:
+            if tests.returncode == 0:
                 super().delete_temp_folder(path)
                 return super().log(f'Tests for {BACKEND_URL} failed!')
             else:
                 print('Tests passed')
+                shutil.rmtree(BACKEND_PATH+BACKEND_FOLDER_NAME)
+                subprocess.run('supervisorctl stop shop', shell=True)
+                os.chdir(BACKEND_PATH)
+                os.rename('temp', BACKEND_FOLDER_NAME)
+                subprocess.run('sudo supervisorctl start shop', shell=True)
             print('Starting backend update!')
         else:
             super().task_assigner(data, event)
@@ -138,6 +144,3 @@ class Logger:
         event_time = time.strftime("%d.%m.%Y %H:%M:%S")
         self.record.append(f'[{event_time}] - request denied. Reason: {str(self.message)}')
         print(self.record)
-
-
-
